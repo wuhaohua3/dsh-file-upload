@@ -17,22 +17,32 @@ if (-not $DshHome) { $DshHome = Join-Path $HOME ".dsh" }
 $profileDir = Join-Path $DshHome "profiles"
 $scoped = Join-Path $profileDir "node_modules\@deepseek-ai"
 $target = Join-Path $scoped "dsh-file-upload"
-$src = Join-Path $here "plugin\dsh-file-upload"
+
+# Locate the package root (a dir containing package.json), in layout order:
+#   release zip -> plugin/dsh-file-upload ; git checkout -> parent of scripts/
+$src = @(
+	(Join-Path $here "plugin\dsh-file-upload"),
+	(Split-Path $here -Parent),
+	$here
+) | Where-Object { Test-Path (Join-Path $_ "package.json") } | Select-Object -First 1
 
 Write-Host "DSH home : $DshHome"
+Write-Host "Source   : $src"
 Write-Host "Target   : $target"
 
-if (-not (Test-Path (Join-Path $src "package.json"))) {
-	Write-Error "The plugin source folder was not found at $src. Keep the whole release folder together."
+if (-not $src) {
+	Write-Error "The plugin source folder was not found — expected package.json next to or under this script."
 	return
 }
 
-# 1) Copy the plugin package into the profile's node_modules (real directory,
-#    so the host resolver finds it without any pnpm/npm install).
+# 1) Copy the package files into the profile's node_modules (a real directory, so
+#    the host resolver finds it without any pnpm/npm install). Only the files the
+#    plugin needs: package.json (with the dsh.client declaration) and lib/.
 New-Item -ItemType Directory -Force -Path $scoped | Out-Null
 if (Test-Path $target) { Remove-Item $target -Recurse -Force }
-New-Item -ItemType Directory -Force -Path $target | Out-Null
-Copy-Item -Recurse -Force (Join-Path $src "*") -Destination $target
+New-Item -ItemType Directory -Force -Path "$target\lib" | Out-Null
+Copy-Item "$src\package.json" -Destination $target -Force
+Copy-Item "$src\lib\*" -Destination "$target\lib" -Recurse -Force
 Write-Host "[ok] Installed package into $target" -ForegroundColor Green
 
 # 2) Add the `file-upload` row to the web profile's patch layer.

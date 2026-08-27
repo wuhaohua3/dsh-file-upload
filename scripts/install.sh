@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Installs the dsh-file-upload plugin into a DeepSeek Harness web profile.
+# Works from either layout:
+#   - the git checkout (this script lives in scripts/, the package root is ../)
+#   - the release zip (this script sits at the zip root, package is plugin/dsh-file-upload)
 #
-# Usage (run from this release folder):
-#   ./install.sh
-#   DSH_HOME=/path/to/.dsh ./install.sh
+# Usage:
+#   ./scripts/install.sh            (from a git checkout)
+#   ./install.sh                    (from an extracted release zip)
+#   DSH_HOME=/path/to/.dsh ./scripts/install.sh
 #
-# Idempotent: re-running repairs the package copy and never duplicates the
-# patch row. Restart the Web GUI afterward (or refresh the browser tab).
+# Idempotent. Restart the Web GUI (or refresh the browser tab) afterward.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -14,22 +17,38 @@ DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
 PROFILE_DIR="$DSH_HOME/profiles"
 SCOPED="$PROFILE_DIR/node_modules/@deepseek-ai"
 TARGET="$SCOPED/dsh-file-upload"
-SRC="$HERE/plugin/dsh-file-upload"
 
-echo "DSH home : $DSH_HOME"
-echo "Target   : $TARGET"
+# Locate the package root: the first directory containing package.json, in layout order.
+# 1) release zip:  this script is at the zip root, package is plugin/dsh-file-upload
+# 2) git checkout: this script is in scripts/, package root is the repo root (..)
+# 3) fallback:     this script's own directory
+find_src() {
+	for cand in "$HERE/plugin/dsh-file-upload" "$(dirname "$HERE")" "$HERE"; do
+		if [ -f "$cand/package.json" ]; then
+			printf '%s' "$cand"
+			return 0
+		fi
+	done
+	return 1
+}
 
-if [ ! -f "$SRC/package.json" ]; then
-	echo "ERROR: plugin source not found at $SRC — keep the whole release folder together." >&2
+if ! SRC="$(find_src)"; then
+	echo "ERROR: plugin source not found — expected package.json next to or under this script." >&2
 	exit 1
 fi
 
-# 1) Copy the plugin package into the profile's node_modules (real directory so
-#    the host resolver finds it without any npm/pnpm install).
+echo "DSH home : $DSH_HOME"
+echo "Source   : $SRC"
+echo "Target   : $TARGET"
+
+# 1) Copy the package files into the profile's node_modules (a real directory so
+#    the host resolver finds it without any npm/pnpm install). Only the files the
+#    plugin needs: package.json (with the dsh.client declaration) and lib/.
 mkdir -p "$SCOPED"
 rm -rf "$TARGET"
-mkdir -p "$TARGET"
-cp -R "$SRC"/. "$TARGET"/
+mkdir -p "$TARGET/lib"
+cp -R "$SRC/package.json" "$TARGET/"
+cp -R "$SRC/lib/." "$TARGET/lib/"
 echo "[ok] Installed package into $TARGET"
 
 # 2) Add the `file-upload` row to the web profile's patch layer.

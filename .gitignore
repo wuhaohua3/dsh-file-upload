@@ -1,0 +1,7 @@
+node_modules/
+# Local test uploads and scratch
+uploads/
+*.log
+# Editor / OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,32 @@
+{
+  "name": "@deepseek-ai/dsh-file-upload",
+  "description": "In-chat file upload: a composer button that POSTs a local file to a host endpoint, which stores it under the session workspace so the agent can read it with its tools.",
+  "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "license": "MIT",
+  "files": [
+    "lib/index.js",
+    "lib/client.js"
+  ]
+}

@@ -1,0 +1,13 @@
+# dsh-file-upload plugin: patch overlay for a web profile.
+#
+# Add this to enable the plugin. Two ways:
+#   1) Persistent — merge these lines into <profile>/cordis.patch.yml, e.g.
+#        $DSH_HOME/profiles/web/cordis.patch.yml
+#   2) One-off — boot with an overlay (the row is NOT saved to the profile):
+#        dsh --profile web --patch ./file-upload.cordis.patch.yml
+#
+# The `name` must resolve to an installed package (see the release README for
+# how to install @deepseek-ai/dsh-file-upload on this machine).
+- insert:
+    - id: file-upload
+      name: '@deepseek-ai/dsh-file-upload'
